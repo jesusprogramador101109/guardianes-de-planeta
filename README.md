@@ -21,7 +21,7 @@
     flex-direction:column;
     min-height:100vh;
   }
-  header,footer{
+  header{
     background:var(--green);
     color:#fff;
     text-align:center;
@@ -32,26 +32,28 @@
     display:flex;
     justify-content:center;
     align-items:center;
-    padding:1rem;
+    padding:0.5rem;
   }
   .container{
-    max-width:960px;
     width:100%;
+    max-width:960px;
     background:#fff;
     border-radius:12px;
     box-shadow:0 4px 8px rgba(0,0,0,0.1);
-    padding:16px;
+    padding:12px;
     text-align:center;
   }
   button{
     background:var(--blue);
     color:#fff;
     border:none;
-    padding:0.7rem 1.2rem;
-    border-radius:8px;
+    padding:0.8rem 1.2rem;
+    border-radius:10px;
     margin:0.5rem;
     cursor:pointer;
-    font-size:1rem;
+    font-size:1.1rem;
+    width:100%;
+    max-width:250px;
   }
   button:disabled{
     background:#aaa;
@@ -67,22 +69,22 @@
     font-size:0.9rem;
     font-weight:bold;
     color:#fff;
+    flex-wrap:wrap;
   }
   /* Minijuego 1 */
-  .bins{display:flex;justify-content:space-around;margin-top:1rem;}
-  .bin{flex:1;margin:0 5px;padding:1rem;border:2px dashed var(--green);border-radius:8px;}
-  .item{display:inline-block;background:var(--blue);color:#fff;padding:0.5rem 1rem;border-radius:6px;margin:4px;cursor:grab;}
+  .bins{display:flex;justify-content:space-around;margin-top:1rem;flex-wrap:wrap;gap:0.5rem;}
+  .bin{flex:1;min-width:80px;padding:1rem;border:2px dashed var(--green);border-radius:8px;}
+  .item{display:inline-block;background:var(--blue);color:#fff;padding:0.5rem 1rem;border-radius:6px;margin:4px;cursor:grab;font-size:1.5rem;}
   /* Minijuego 2 */
-  .tap-area{position:relative;height:250px;background:#e0f7fa;border-radius:10px;overflow:hidden;}
-  .faucet{position:absolute;width:50px;height:50px;background:var(--blue);border-radius:50%;display:flex;justify-content:center;align-items:center;color:#fff;font-size:1.5rem;cursor:pointer;}
+  .tap-area{position:relative;height:40vh;max-height:300px;background:#e0f7fa;border-radius:10px;overflow:hidden;}
+  .faucet{position:absolute;width:50px;height:50px;background:var(--blue);border-radius:50%;display:flex;justify-content:center;align-items:center;color:#fff;font-size:1.5rem;cursor:pointer;user-select:none;}
   .waste-bar{height:20px;background:#ccc;margin-top:10px;border-radius:10px;overflow:hidden;}
   .waste-fill{height:100%;width:0;background:red;transition:width 0.1s;}
   /* Minijuego 3 */
-  .grid{display:grid;grid-template-columns:repeat(5,60px);grid-gap:8px;justify-content:center;}
-  .cell{width:60px;height:60px;background:#c8e6c9;border-radius:6px;display:flex;justify-content:center;align-items:center;font-size:1.5rem;cursor:pointer;}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);grid-gap:6px;justify-content:center;}
+  .cell{width:100%;aspect-ratio:1;background:#c8e6c9;border-radius:6px;display:flex;justify-content:center;align-items:center;font-size:1.3rem;cursor:pointer;}
   .bar{height:20px;background:#ccc;margin:10px;border-radius:10px;overflow:hidden;}
   .fill{height:100%;width:50%;background:var(--blue);transition:width 0.3s;}
-  footer{font-size:0.8rem;}
 </style>
 </head>
 <body>
@@ -99,7 +101,6 @@
     <div id="scene"></div>
   </div>
 </main>
-<footer>créditos a Romero</footer>
 
 <script>
 "use strict";
@@ -131,10 +132,19 @@ function mountScene(name){gameState.scene=name;
 
 /* ==== Juego 1 ==== */
 function game1(){
- qs("#scene").innerHTML=`<h2>Minijuego 1 - Separar residuos</h2><p>Arrastra los objetos al contenedor correcto.</p><div id="items"></div><div class="bins"><div class="bin" data-type="org">Orgánico</div><div class="bin" data-type="pla">Plástico</div><div class="bin" data-type="pap">Papel</div></div>`;
+ qs("#scene").innerHTML=`<h2>Minijuego 1 - Separar residuos</h2><p>Toca o arrastra los objetos al contenedor correcto.</p><div id="items"></div><div class="bins"><div class="bin" data-type="org">Orgánico</div><div class="bin" data-type="pla">Plástico</div><div class="bin" data-type="pap">Papel</div></div>`;
  const itemsEl=qs("#items");const types=["org","pla","pap"];let score=0;
  for(let i=0;i<TARGET_SORT;i++){let t=types[Math.floor(Math.random()*3)];let el=document.createElement("div");el.className="item";el.textContent=t==="org"?"🍎":t==="pla"?"🧴":"📄";el.draggable=true;el.dataset.type=t;itemsEl.appendChild(el);}
- qsa(".item").forEach(it=>{it.addEventListener("dragstart",e=>{e.dataTransfer.setData("type",it.dataset.type);});});
+ // drag & drop
+ qsa(".item").forEach(it=>{
+   it.addEventListener("dragstart",e=>{e.dataTransfer.setData("type",it.dataset.type);});
+   // soporte móvil: tap
+   it.addEventListener("click",()=>{
+     let bins=qsa(".bin");
+     let target=bins.find(b=>b.dataset.type===it.dataset.type);
+     if(target){it.remove();score++;if(score>=TARGET_SORT){gameState.puntos+=10;gameState.objetivo+=10;gameState.nivel=2;goTo("juego2");}}
+   });
+ });
  qsa(".bin").forEach(bin=>{
    bin.addEventListener("dragover",e=>e.preventDefault());
    bin.addEventListener("drop",e=>{
@@ -154,7 +164,6 @@ function game2(){
  const tapArea=qs("#tapArea"), wasteFill=qs("#wasteFill");
  let taps=0, waste=0;
 
- // Generar grifos de forma periódica
  function spawn(){
    if(tapArea.children.length<3){
      let f=document.createElement("div");
@@ -166,7 +175,7 @@ function game2(){
      f.onclick=()=>{
        taps++;
        f.remove();
-       waste=Math.max(0, waste-0.1); // ✅ Reduce desperdicio al cerrar grifo
+       waste=Math.max(0, waste-0.1);
        if(taps>=TARGET_TAPS){
          gameState.puntos+=10;
          gameState.objetivo+=10;
@@ -179,24 +188,19 @@ function game2(){
  let spawnTimer=setInterval(spawn,1000);
  gameState.timers.push(spawnTimer);
 
- // Animación de la barra de desperdicio
  function animate(){
-   waste+=0.002; // sube poco a poco
+   waste+=0.002;
    if(waste>1) waste=1;
    wasteFill.style.width=(waste*100)+"%";
-
-   // Si la barra se llena, reinicia el minijuego
    if(waste>=1){
      taps=0;
      waste=0;
      tapArea.innerHTML="";
    }
-
    gameState.raf=requestAnimationFrame(animate);
  }
  animate();
 }
-
 
 /* ==== Juego 3 ==== */
 function game3(){
